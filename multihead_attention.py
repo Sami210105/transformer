@@ -23,7 +23,7 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         
     def forward(self, x):
         #x: batch, seq_len, d_model
-        batch, seq_len, d_model = x.shape()
+        batch, seq_len, d_model = x.shape
         print(f"Input x: {x.shape}")
         
         Q = self.W_q(x) #take every token, multiply by weight add bias and produce query vector
@@ -31,6 +31,12 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         V = self.W_v(x)
         print(f" Q/K/V shapes after splitting into heads: {Q.shape}, {K.shape}, {V.shape}")
         
+        Q = Q.view(batch, seq_len, self.n_heads, self.d_k)
+        K = K.view(batch, seq_len, self.n_heads, self.d_k)
+        V = V.view(batch, seq_len, self.n_heads, self.d_k)
+
+        print(f"After view: {Q.shape}")
+
         #before we have batch, seq_len, heads, d_k, we need to reshape to batch, heads, seq_len, d_k because we want n_heads to have each token and not every token to have n_heads
         Q = Q.transpose(1,2)
         K = K.transpose(1,2)
@@ -41,7 +47,7 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         scores = scores / (self.d_k ** 0.5)
         attn_weights = F.softmax(scores, dim=-1)
         head_outputs = attn_weights @ V
-        head_outputs.transpose(1,2) #back to batch, seq_len, heads, d_k
+        head_outputs = head_outputs.transpose(1,2) #back to batch, seq_len, heads, d_k
         
         concat = head_outputs.contiguous().view(batch, seq_len, self.d_model)
         print(f"Concatenated output shape: {concat.shape}")
@@ -49,19 +55,19 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         print(f"Final output shape: {output.shape}")
         return output
     
-    if __name__ == "__main__":
-        batch = 1
-        seq_len = 4
-        d_model = 8
-        n_heads = 2
+if __name__ == "__main__":
+    batch = 1
+    seq_len = 4
+    d_model = 8
+    n_heads = 2
         
-        x = torch.randn(batch, seq_len, d_model)
-        mha = MultiHeadAttention(d_model, n_heads)
-        out = mha(x)
-        print(f"Running MultiHeadAttention")
+    x = torch.randn(batch, seq_len, d_model)
+    mha = MultiHeadAttention(d_model, n_heads)
+    out = mha(x)
+    print(f"Running MultiHeadAttention")
         
-        assert out.shape == x.shape
-        print("Output shape matches input shape!")
+    assert out.shape == x.shape
+    print("Output shape matches input shape!")
     
         
         
