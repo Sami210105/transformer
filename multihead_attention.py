@@ -21,7 +21,7 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         #This is output projection layer
         self.W_o = nn.Linear(d_model, d_model)
         
-    def forward(self, x):
+    def forward(self, x, causal=True):
         #x: batch, seq_len, d_model
         batch, seq_len, d_model = x.shape
         print(f"Input x: {x.shape}")
@@ -45,6 +45,11 @@ class MultiHeadAttention(nn.Module): #is a nn, inherit from nn.Module -has built
         
         scores = Q @ K.transpose(-2, -1) #to swap seq_len and d_k
         scores = scores / (self.d_k ** 0.5)
+        
+        if causal:
+            mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device))
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+            
         attn_weights = F.softmax(scores, dim=-1)
         head_outputs = attn_weights @ V
         head_outputs = head_outputs.transpose(1,2) #back to batch, seq_len, heads, d_k
@@ -63,7 +68,7 @@ if __name__ == "__main__":
         
     x = torch.randn(batch, seq_len, d_model)
     mha = MultiHeadAttention(d_model, n_heads)
-    out = mha(x)
+    out = mha(x, causal=True)
     print(f"Running MultiHeadAttention")
         
     assert out.shape == x.shape
